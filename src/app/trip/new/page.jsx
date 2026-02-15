@@ -1,5 +1,6 @@
+"use client";
+import { useState } from "react";
 export default function newTrip() {
-
   const interests = [
     { label: "Nature/Outdoors", value: "nature" },
     { label: "Museums/Culture", value: "culture" },
@@ -9,10 +10,54 @@ export default function newTrip() {
     { label: "Scenic/Photography", value: "scenic" },
   ];
 
+  const [isLoading,setIsLoading] = useState(false);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const formData = new FormData(e.target);
+
+      const tripData = {
+        destination: formData.get("destination"),
+        startDate: formData.get("startDate"),
+        endDate: formData.get("endDate"),
+        budget: formData.get("budget"),
+        interests: formData.getAll("interest"),
+        pace: formData.get("pace"),
+        notes: formData.get("free_text"),
+      };
+
+      const res = await fetch("/api/trip/init", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(tripData),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to create trip");
+      }
+
+      const data = await res.json();
+      console.log("Trip created:", data);
+
+      // ✅ Reset only if successful
+      e.target.reset();
+
+    } catch (error) {
+      console.error("Error submitting trip:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
   return (
     <div className="h-screen flex items-center justify-center">
       <div className="border p-5 rounded-xl w-120 max-w-full">
-        <form action="" className="flex flex-col gap-2">
+        <form action="" className="flex flex-col gap-2" onSubmit={handleSubmit}>
           <h1 className="text-2xl font-bold mb-4 text-center">
             Create a New Trip
           </h1>
@@ -53,16 +98,14 @@ export default function newTrip() {
               <input type="number" placeholder="Max" min="0" className="p-1.5 border border-gray-500 rounded-lg"/>
             </div>
           </div> */}
-          <p>Select your Interests</p>
+          <p className="font-semibold">Select your Interests</p>
           <div className="grid grid-cols-2">
-            {
-              interests.map((interest) => (
-                <div key={interest.value} className="flex gap-2">
-                  <input type="checkbox" name="interest" value={interest.value} />
-                  <label>{interest.label}</label>
-                </div>
-              ))
-            }
+            {interests.map((interest) => (
+              <div key={interest.value} className="flex gap-2">
+                <input type="checkbox" name="interest" value={interest.value} />
+                <label>{interest.label}</label>
+              </div>
+            ))}
           </div>
           <div>
             {/* Pace preference */}
@@ -72,7 +115,7 @@ export default function newTrip() {
               className="p-1.5 border border-gray-500 rounded-lg w-full"
               defaultValue=""
             >
-              <option value="" disabled selected>
+              <option value="" disabled>
                 Select pace
               </option>
               <option value="relaxed">Relaxed (2-3 places per day)</option>
